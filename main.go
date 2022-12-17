@@ -13,8 +13,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
-        "github.com/nfnt/resize"
-	"image/jpeg"
+//        "github.com/nfnt/resize"
+//	"image/jpeg"
         // "runtime"
 )
 
@@ -28,8 +28,9 @@ type Post struct {
 }
 
 // Width of output image
-var Width uint = 512
+var Width string = "512"
 
+/*
 func copy(src, dst string, width uint) error {
 	sourceFileStat, err := os.Stat(src)
 	if err != nil {
@@ -66,7 +67,7 @@ func copy(src, dst string, width uint) error {
         jpeg.Encode(destination, m, nil)
 
         return err
-}
+}*/
 
 func main() {
 
@@ -110,7 +111,7 @@ func main() {
 
 	defer f.Close()
 
-	copy(values, filepath.Join("/home/kof/src/k0f.github.io/assets"), Width)
+	//copy(values, filepath.Join("/home/kof/src/k0f.github.io/assets"), Width)
 
 	_, err2 := f.WriteString(postToString(post))
 
@@ -118,7 +119,7 @@ func main() {
 		log.Fatal(err2)
 	}
 
-	out, err := exec.Command("/bin/sh", "-c", fmt.Sprintf("cd /home/kof/src/k0f.github.io; git add .; git commit -am \"%s\";git push", title)).Output()
+	out, err := exec.Command("/bin/sh", "-c", fmt.Sprintf("convert %s -resize %s /home/kof/src/k0f.github.io/assets/%s; cd /home/kof/src/k0f.github.io; git add .; git commit -am \"%s\"; git push", values, Width, values, title)).Output()
 
 	if err != nil {
 		log.Fatal(err)
