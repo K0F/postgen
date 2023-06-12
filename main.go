@@ -7,7 +7,7 @@ import (
 	"flag"
 	"fmt"
 //	"io/ioutil"
-        "github.com/rwcarlsen/goexif/exif"
+//        "github.com/rwcarlsen/goexif/exif"
 //        "path"
 	"log"
 	"os"
@@ -41,7 +41,7 @@ func main() {
         now := fmt.Sprintf("%s", time.Now().Format(time.RFC3339)[0:10])
         log.Println(now)
 
-
+	/*
         f, err := os.Open(values)
 		if err != nil {
 			panic(err)
@@ -49,11 +49,10 @@ func main() {
         defer f.Close()
 		x, err := exif.Decode(f)
 		if err != nil {
-			panic(err)
+			fmt.Println(err)
 		}
-		tm, _ := x.DateTime()
 		fmt.Println(tm.Date())
-
+*/
 
                 /*
 	fmt.Println("Enter Post title: ")
@@ -79,8 +78,8 @@ func main() {
         
         title := fn
 
-        y,m,d := tm.Date()
-        date := fmt.Sprintf("%04d-%02d-%02d",y,m,d)
+
+        date := now//fmt.Sprintf("%04d-%02d-%02d",y,m,d)
         log.Println(date)
         
         _, file := filepath.Split(values)
