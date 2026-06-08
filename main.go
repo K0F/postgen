@@ -1,126 +1,88 @@
 package main
 
 import (
-//	"bufio"
-"flag"
-"fmt"
-//	"io/ioutil"
-//        "github.com/rwcarlsen/goexif/exif"
-//        "path"
-"log"
-"os"
-"os/exec"
-"path/filepath"
-//	"strings"
-"time"
-//        "github.com/nfnt/resize"
-//	"image/jpeg"
-// "runtime"
+	"flag"
+	"fmt"
+	"log"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"time"
 )
 
-// Post struct
 type Post struct {
-Layout   string
-Title    string
-Date     string
-Category string
-Image    string
+	Layout   string
+	Title    string
+	Date     string
+	Category string
+	Image    string
 }
 
-// Width of output image
 var Width string = "512"
 
 func main() {
+	flag.Parse()
+	
+	// Prevent panic if no argument is passed
+	if len(flag.Args()) < 1 {
+		log.Fatal("Error: Please provide a path to an image file.\nUsage: postgen <path_to_image>")
+	}
+	
+	values := flag.Args()[0]
+	log.Println("Input path:", values)
 
-flag.Parse()
-values := flag.Args()[0]
-log.Println(values)
+	now := time.Now().Format("2006-01-02")
+	log.Println("Current date:", now)
 
-now := fmt.Sprintf("%s", time.Now().Format(time.RFC3339)[0:10])
-log.Println(now)
+	_, file := filepath.Split(values)
+	
+	// Clean the title: remove extension and replace colons/spaces to protect Jekyll
+	title := strings.Split(file, ".")[0]
+	title = strings.ReplaceAll(title, ":", "-") 
 
-/*
-f, err := os.Open(values)
-if err != nil {
-panic(err)
-}
-defer f.Close()
-x, err := exif.Decode(f)
-if err != nil {
-fmt.Println(err)
-}
-fmt.Println(tm.Date())
-*/
+	post := Post{
+		Layout:   "post",
+		Title:    title,
+		Date:     now,
+		Category: "kof archive",
+		Image:    file,
+	}
 
-/*
-fmt.Println("Enter Post title: ")
+	// Sanitize output filename to prevent Jekyll URI scheme errors
+	safeFn := strings.ReplaceAll(file, ":", "-")
+	filename := filepath.Join("/", "home", "kof", "src", "k0f.github.io", "_posts", fmt.Sprintf("%s-%s.markdown", now, safeFn))
+	log.Printf("Creating %s\n", filename)
+	
+	f, e := os.Create(filename)
+	if e != nil {
+		log.Fatal(e)
+	}
+	defer f.Close()
 
-reader := bufio.NewReader(os.Stdin)
-title, err := reader.ReadString('\n')
-title = title[0 : len(title)-1] //trim \n
-if err != nil {
-log.Fatal(err)
-}
+	_, err2 := f.WriteString(postToString(post))
+	if err2 != nil {
+		log.Fatal(err2)
+	}
 
-fmt.Println("Enter Post date: ")
+	// FIX: Use 'values' for source file so convert knows where to find it. 
+	// FIX: Changed git commit -am to git commit -m
+	shellCmd := fmt.Sprintf("convert \"%s\" -resize %s /home/kof/src/k0f.github.io/assets/\"%s\" && cd /home/kof/src/k0f.github.io && git add . && git commit -m \"archive: %s\" && git push", values, Width, file, title)
+	
+	log.Println("Executing pipeline...")
+	out, err := exec.Command("/bin/sh", "-c", shellCmd).CombinedOutput() // CombinedOutput catches stderr too
 
-date, err := reader.ReadString('\n')
-date = fmt.Sprintf("%s %s", date[0:len(date)-1], now) //trim \n
-if err != nil {
-log.Fatal(err)
-}
-*/
+	if err != nil {
+		log.Printf("Shell pipeline failed: %s\n", err)
+		log.Fatalf("Output: %s\n", string(out))
+	}
 
-
-_, fn := filepath.Split(values)
-
-title := fn
-
-
-date := now//fmt.Sprintf("%04d-%02d-%02d",y,m,d)
-log.Println(date)
-
-_, file := filepath.Split(values)
-
-post := Post{
-Layout:   "post",
-Title:    title,
-Date:     date,
-Category: "kof archive",
-Image:    file,
-}
-
-log.Println(post)
-filename := filepath.Join("/", "home", "kof", "src", "k0f.github.io", "_posts", fmt.Sprintf("%s-%s.markdown", now, fn))
-log.Printf("Creating %s\n",filename)
-f, e := os.Create(filename)
-
-if e != nil {
-log.Fatal(e)
+	fmt.Println("Command Successfully Executed")
+	fmt.Println(string(out))
 }
 
-defer f.Close()
-
-//copy(values, filepath.Join("/home/kof/src/k0f.github.io/assets"), Width)
-
-_, err2 := f.WriteString(postToString(post))
-
-if err2 != nil {
-log.Fatal(err2)
-}
-
-
-out, err := exec.Command("/bin/sh", "-c", fmt.Sprintf("convert %s -resize %s /home/kof/src/k0f.github.io/assets/%s; cd /home/kof/src/k0f.github.io; git add .; git commit -am \"%s\"; git push", file, Width, file, title)).Output()
-
-if err != nil {
-log.Fatal(err)
-}
-
-fmt.Println("Command Successfully Executed")
-output := string(out[:])
-fmt.Println(output)
-}
-
+// FIX: Replaced tabs (\t) with standard spaces to satisfy YAML specifications
 func postToString(_post Post) string {
-return fmt.Sprintf("---\nlayout:\t%s\ntitle:\t\"%s\"\ndate:\t%s\ncategories:\t%s\n---\n\n![Image Alt](https://k0f.github.io/assets/%s)", _post.Layout, _post.Title, _post.Date, _post.Category, _post.Image)
+	return fmt.Sprintf("---\nlayout: %s\ntitle: \"%s\"\ndate: %s\ncategories: %s\n---\n\n![Image Alt](https://k0f.github.io/assets/%s)", 
+		_post.Layout, _post.Title, _post.Date, _post.Category, _post.Image)
 }
