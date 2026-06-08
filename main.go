@@ -82,13 +82,15 @@ func main() {
         y,m,d := tm.Date()
         date := fmt.Sprintf("%04d-%02d-%02d",y,m,d)
         log.Println(date)
+        
+        _, file := filepath.Split(values)
 
 	post := Post{
 		Layout:   "post",
 		Title:    title,
 		Date:     date,
 		Category: "kof archive",
-		Image:    values,
+		Image:    file,
 	}
 
 	log.Println(post)
@@ -110,7 +112,6 @@ func main() {
 		log.Fatal(err2)
 	}
 
-        _, file := filepath.Split(values)
 
 	out, err := exec.Command("/bin/sh", "-c", fmt.Sprintf("convert %s -resize %s /home/kof/src/k0f.github.io/assets/%s; cd /home/kof/src/k0f.github.io; git add .; git commit -am \"%s\"; git push", file, Width, file, title)).Output()
 
