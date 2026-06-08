@@ -3,15 +3,17 @@ package main
 
 
 import (
-	"bufio"
+//	"bufio"
 	"flag"
 	"fmt"
-	//"io"
+//	"io/ioutil"
+        "github.com/rwcarlsen/goexif/exif"
+//        "path"
 	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
+//	"strings"
 	"time"
 //        "github.com/nfnt/resize"
 //	"image/jpeg"
@@ -30,53 +32,30 @@ type Post struct {
 // Width of output image
 var Width string = "512"
 
-/*
-func copy(src, dst string, width uint) error {
-	sourceFileStat, err := os.Stat(src)
-	if err != nil {
-		return err
-	}
-
-	if !sourceFileStat.Mode().IsRegular() {
-		return fmt.Errorf("%s is not a regular file", src)
-	}
-
-	source, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer source.Close()
-
-
-        // decode jpeg into image.Image
-	img, err := jpeg.Decode(source)
-	if err != nil {
-		log.Fatal(err)
-	}
-        m := resize.Resize(width, 0, img, resize.Lanczos3)
-
-
-	destination, err := os.Create(dst)
-	if err != nil {
-		return err
-	}
-	defer destination.Close()
-	
-        //nBytes, err := io.Copy(destination, source)
-        
-        jpeg.Encode(destination, m, nil)
-
-        return err
-}*/
-
 func main() {
 
 	flag.Parse()
 	values := flag.Args()[0]
 	log.Println(values)
 
-	now := strings.Split(fmt.Sprintf("%s", time.Now().Format(time.UnixDate)), " ")[3]
+        now := fmt.Sprintf("%s", time.Now().Format(time.RFC3339)[0:10])
+        log.Println(now)
 
+
+        f, err := os.Open(values)
+		if err != nil {
+			panic(err)
+		}
+        defer f.Close()
+		x, err := exif.Decode(f)
+		if err != nil {
+			panic(err)
+		}
+		tm, _ := x.DateTime()
+		fmt.Println(tm.Date())
+
+
+                /*
 	fmt.Println("Enter Post title: ")
 
 	reader := bufio.NewReader(os.Stdin)
@@ -93,6 +72,16 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+        */
+
+
+        _, fn := filepath.Split(values)
+        
+        title := fn
+
+        y,m,d := tm.Date()
+        date := fmt.Sprintf("%04d-%02d-%02d",y,m,d)
+        log.Println(date)
 
 	post := Post{
 		Layout:   "post",
@@ -102,11 +91,13 @@ func main() {
 		Image:    values,
 	}
 
-	filename := filepath.Join("/", "home", "kof", "src", "k0f.github.io", "_posts", fmt.Sprintf("%s-%s.markdown", strings.Split(post.Date, " ")[0], strings.Replace(post.Title, " ", "-", -1)))
-	f, err := os.Create(filename)
+	log.Println(post)
+        filename := filepath.Join("/", "home", "kof", "src", "k0f.github.io", "_posts", fmt.Sprintf("%s-%s.markdown", now, fn))
+	log.Printf("Creating %s\n",filename)
+        f, e := os.Create(filename)
 
-	if err != nil {
-		log.Fatal(err)
+	if e != nil {
+		log.Fatal(e)
 	}
 
 	defer f.Close()
@@ -119,7 +110,9 @@ func main() {
 		log.Fatal(err2)
 	}
 
-	out, err := exec.Command("/bin/sh", "-c", fmt.Sprintf("convert %s -resize %s /home/kof/src/k0f.github.io/assets/%s; cd /home/kof/src/k0f.github.io; git add .; git commit -am \"%s\"; git push", values, Width, values, title)).Output()
+        _, file := filepath.Split(values)
+
+	out, err := exec.Command("/bin/sh", "-c", fmt.Sprintf("convert %s -resize %s /home/kof/src/k0f.github.io/assets/%s; cd /home/kof/src/k0f.github.io; git add .; git commit -am \"%s\"; git push", file, Width, file, title)).Output()
 
 	if err != nil {
 		log.Fatal(err)
